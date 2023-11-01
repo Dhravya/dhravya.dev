@@ -41,7 +41,7 @@ async function GuestbookEntries() {
   const entries = await queryBuilder
     .selectFrom('guestbook')
     .select(['id', 'body', 'created_by', 'updated_at'])
-    .orderBy('updated_at', 'desc')
+    .orderBy('id', 'desc')
     .limit(100)
     .execute();
 

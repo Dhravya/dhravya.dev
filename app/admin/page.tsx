@@ -17,7 +17,7 @@ export default async function GuestbookPage() {
   const entries = await queryBuilder
     .selectFrom('guestbook')
     .select(['id', 'body', 'created_by', 'updated_at'])
-    .orderBy('updated_at', 'desc')
+    .orderBy('id', 'asc')
     .limit(500)
     .execute();
 

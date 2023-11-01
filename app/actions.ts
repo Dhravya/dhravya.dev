@@ -43,9 +43,11 @@ export async function saveGuestbookEntry(formData: FormData) {
   const entry = formData.get('entry')?.toString() || '';
   const body = entry.slice(0, 500);
 
+  const updatedAt = new Date().toISOString();
+
   await queryBuilder
     .insertInto('guestbook')
-    .values({ email, body, created_by })
+    .values({ email, body, created_by, updated_at: updatedAt })
     .execute();
 
   revalidatePath('/guestbook');
