@@ -1,0 +1,151 @@
+---
+title: 'Rickroll your friends with Python🐍'
+summary: 'Yesterday, I came across a cute cat video on discord. Bored, I thought it would be really funny if I made this into a rickroll video and forward it to my friends 😂'
+publishedAt: 2022-03-11
+---
+
+Yesterday, I came across a cute cat video on discord. Bored, I thought it would be really funny if I made this into a rickroll video and forward it to my friends 😂
+
+But you see, I'm really lazy. So lazy that instead of taking 2 minutes to edit the video, I spent the next half an hour making a python program that takes in a video and returns a rickroll (Basically, it just adds the rickroll to the end of the clip).
+
+I had no idea about Moviepy (the package i'll be using to combine the videos), so it was a great learning experience for me and I already have one more project in which i can use the experience from rickroll generator (for the hackathon 😉)
+
+The idea is, take a clip path and save the rickroll to a folder (say, `output.mp4`)
+
+```py
+class Rickroller:
+    def make(self, clip_path:str):
+        clip_path = self.__download_if_url(clip_path)
+```
+
+To maximise the amount of stuff I learn from this project, I also challenged myself to use the Rich progress bar to show the status and download videos right from URLs (which is `__download_if_url` function)
+
+The download if url literally does nothing, checks if it's a valid URL and if yes, downloads and returns the path where it's been saved (More about `__do_download` later, which is actually downloading the stuff)
+
+```py
+    def __download_if_url(self, url: str):
+        """
+        Checks if it's a URL, if yes, downloads it.
+        :return: None
+        """
+        if url.startswith("http"):
+            url = self.__do_download(url)
+
+        return url
+```
+
+Now, assuming we have the clip downloaded, I load the `clip_path` and `rickroll_path` to be actual videos i could do stuff with.
+
+Also, I added some flexibility by allowing the users to cut some of the clip at the end (because i noticed that's what's done in these rickrolls) and finally, just concatenated the clips
+
+```py
+        clip2 = VideoFileClip(clip_path)
+        clip2 = clip2.subclip(0, clip2.duration - cut_len)
+
+        # We only want the first 15 seconds
+        rickroll = rickroll.subclip(0.5, rickroll_len).resize(width=clip2.w)
+
+        # Concatenate the two clips
+        final_clip = concatenate_videoclips([clip2, rickroll], method="compose")
+```
+
+Here, I'm using `method=compose` because of a weird glitch in moviepy where it would corrupt the second clip and make a really shabby video
+
+Also, i resize the rickroll to be as wide as the clip itself, to fix aspect ratio errors
+
+So, here's the entire `make` function
+
+```py
+    def make(
+        self,
+        clip_path: str,
+        output_path: str = "output.mp4",
+        rickroll_path: str = "rickroll.mp4",
+        rickroll_len: int = 15,
+        cut_len: int = 15,
+    ):
+        """
+        Generates the rickroll itself. Essentially just concatenates the
+        video clips together.
+        :param clip_path: The path to the video clip to be used.
+        :param output_path: The path to the output file. Default is output.mp4
+        :return: None
+        """
+
+        # Check if clip_path is a URL, if yes, downloads it and changes the clip_path
+        clip_path = self.__download_if_url(clip_path)
+        rickroll_path = self.__download_if_url(rickroll_path )
+        rickroll = VideoFileClip(rickroll_path)
+
+        clip2 = VideoFileClip(clip_path)
+        clip2 = clip2.subclip(0, clip2.duration - cut_len)
+
+        # We only want the first 15 seconds
+        rickroll = rickroll.subclip(0.5, rickroll_len).resize(width=clip2.w)
+
+        # Concatenate the two clips
+        final_clip = concatenate_videoclips([clip2, rickroll], method="compose")
+
+        final_clip.write_videofile(output_path)
+
+        print(f"[bold green]Rickroll saved to {output_path}[/bold green]")
+```
+
+Yes, I've used quite a bit of `rich` module here. which you'll see now, in the section that downloads videos from URLs (which might seem normal, but making the progress bar was honestly such a pain)
+
+## Downloading videos and saving with a progress bar
+
+I knew 2 things:
+
+- I have to use requests with the `stream` option set to True so i could show a progress bar and save huge videos
+- I know nothing else
+
+I checked the rich examples and realised I can customise the progress bar _a lot_
+
+```py
+        progress = Progress(
+            TextColumn("[bold blue]{task.fields[filename]}", justify="right"),
+            BarColumn(bar_width=None),
+            "[progress.percentage]{task.percentage:>3.1f}%",
+            "•",
+            DownloadColumn(),
+            "•",
+            TransferSpeedColumn(),
+            "•",
+            TimeRemainingColumn(),
+        )
+```
+
+Now, each progress bar has a `taskID` assigned to it, and a context manager. I got the total length of video and then it was quite easy
+
+```py
+        with progress:
+
+            r = requests.get(url, stream=True)
+
+            # Getting the content length to be marked as the total length of the download
+            total = int(r.headers.get("content-length"), 0)
+            with open("raw.mp4", "wb") as f:
+                for chunk in r.iter_content(chunk_size=1024):
+                    if chunk:
+                        f.write(chunk)
+                        progress.update(task_id, total=total, completed=f.tell())
+```
+
+It's done now! Can be used as a simple CLI too, which is exactly what I did
+
+```py
+if __name__ == "__main__":
+    rickroller = Rickroller()
+
+    # Can be used as a standalone script
+    rickroller.make(sys.argv[1])
+```
+
+Just because I was bored, I also made an API for generating rickrolls, but it won't be public because IMGEN and video editing are super heavy tasks which would be costly to host
+
+Check out the source code, API, progress bar on github here: https://github.com/Dhravya/rickroll-maker
+
+Star the repository if you liked it!
+
+💖 this article and 💬 Comment your thoughts below.

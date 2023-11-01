@@ -1,0 +1,147 @@
+---
+title: "Making an auto-updating Twitter banner in Python"
+summary: "I used to use blackmagic.so banner updater, but thats boring. So I made my own."
+publishedAt: 2022-03-10
+---
+
+I used to use [blackmagic.so](https://blackmagic.so)’s auto-banner updater, but I realised that it’s pretty common nowadays and making one on my own would be soo much cooler. Also, the `real-time banner provided by Blackmagic` didn’t really look good
+
+![By the way, you should follow this guy. He’s a great dev with amazing content](/static/images/twitterbanner/Untitled.png)
+
+By the way, you should follow this guy. He’s a great dev with amazing content
+
+As opposed to:
+
+![Untitled](/static/images/twitterbanner/Untitled%201.png)
+
+You should also follow this guy. His followers has been decreasing since quite a long time
+
+Jokes aside, determined to make this on my own with basically 0 knowledge of the Twitter API, this wasn’t gonna be easy. but it kinda was
+
+## Starting out - the twitter api
+
+Oh boi, don’t even get me started on the Twitter API. it’s a complete mess. There are 2 versions, both are completely different. Getting authentication keys is a mess, all links lead to the same article, and the articles don’t even give the solution, they only give the meaning of the problem. there are like 5 different keys you need to authenticate a user
+
+Anyways, I made the API keys by creating an app on the dashboard and dumped them into a `.env` file. I didn’t even know what the keys did yet
+
+I knew of a python module for twitter - `tweepy` that’s quite easy to use, with good documentation
+
+Then there was the login part, which was honestly quite easy to do.
+
+One thing, I didn’t have the `Write` access in my Oauth yet, and this caused a lot of headache later on
+
+```python
+class ProfileBanner:
+    def __init__(self):
+        self.client = self.__login()
+
+    def __login(self):
+        """Logins and sets access tokens"""
+        auth = tweepy.OAuthHandler(env["CONSUMER_KEY"], env["CONSUMER_SECRET"])
+        auth.set_access_token(env["ACCESS_TOKEN"], env["ACCESS_TOKEN_SECRET"])
+        api = tweepy.API(auth)
+        api.verify_credentials()
+        return api
+```
+
+I decided to use twitter API V1 because I tried V2 and it was a pain to set up
+
+## Getting latest followers
+
+I only need the 5 latest followers, just their profile pictures. So I wrote this function that gets the profile pictures as bytes and stores them in a list
+
+```python
+def __get_latest_followers_images(self) -> list[io.BytesIO]:
+        """Gets all the latest follower images"""
+        latest_followers = self.client.get_followers(
+            user_id=env.get("USER_ID"), count=5
+        )
+        images = []
+
+        for follower in latest_followers:
+            response = requests.get(follower.profile_image_url)
+            images.append(io.BytesIO(response.content))
+        return images
+```
+
+> The `__` (double underscore) before function makes it inaccessible outside the class, basically a private function. This is good because we don't wanna make many functions public and keep the API as simple as possible ([https://twitter.com/DhravyaShah/status/1500911400486531072](https://twitter.com/DhravyaShah/status/1500911400486531072?s=20&t=7KBZMxMj8sSubP6wgIjVcw))
+
+## Creating the image
+
+Now is the kinda easy part. Making the image. I already have the follower’s profile pics and just had to paste it onto the template
+
+I created this template on canva, really cool design isn’t it
+
+![Untitled](/static/images/twitterbanner/Untitled%202.png)
+
+Now, by getting the coordinates of the first image and the diameter of each image in pixels, I could easily just paste all the images one by one. This is what I ended up with:
+
+```python
+def __image_factory(self, savepath: str = None) -> Image:
+        """
+        Pastes the image onto the template
+        """
+        template = Image.open("template.png")
+        images = self.__get_latest_followers_images()
+        for i, image in enumerate(images):
+            image = Image.open(image)
+            image = image.resize((self.IMAGE_DIA, self.IMAGE_DIA))
+
+            # Make image circle
+            mask = Image.new("L", (self.IMAGE_DIA, self.IMAGE_DIA), 0)
+            draw = ImageDraw.Draw(mask)
+            draw.ellipse((0, 0, self.IMAGE_DIA, self.IMAGE_DIA), fill=255)
+            image.putalpha(mask)
+
+            # Paste the image onto the template
+            template.paste(
+                image,
+                (
+                    self.FIRST_IMAGE_COORDS[0] + (i * self.IMAGE_DIA),
+                    self.FIRST_IMAGE_COORDS[1],
+                ),
+                image,
+            )
+
+        if savepath:
+            template.save(savepath)
+        return template
+```
+
+## Updating the banner
+
+Now all I have to do is update the banner. Here’s the simple script that does that
+
+```python
+	  def __update_banner(self) -> None:
+        """Updates the banner"""
+        self.__image_factory(savepath="banner.png")
+        self.client.update_profile_banner("banner.png")
+
+    def update_every_few_minutes(self, minutes:int = 2):
+        """Starts the update loop"""
+        while True:
+            self.__update_banner()
+            print("Updated banner")
+            time.sleep(60*minutes)
+```
+
+AAAAAAAAAAAAAAANDDDD BOOM! Done!
+
+```python
+if __name__ == "__main__":
+    banner = ProfileBanner()
+    banner.update_every_few_minutes()
+```
+
+## Deploying
+
+I deployed the project on `pm2` on a VPS I bought from [Epikhost](https://epikhost.xyz).
+
+```python
+pm2 start main.py --interpreter python3.9 --name twitter-banner
+```
+
+## Thanks for reading!
+
+Thanks for reading my boring blog.

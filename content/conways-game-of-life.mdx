@@ -1,0 +1,205 @@
+---
+title: "Making the Conway's game of life in python "
+summary: "Join me as I attempt to make a simple implementation of Conway's Game of Life in python."
+publishedAt: '2022-02-18'
+---
+
+Sounds Fancy, because it is! ![Conway's Game of Life](/static/images/game-of-life/animation.gif)
+
+## The inspiration
+
+I was really bored at home, not motivated to make a website or a discord bot, so I was browsing youtube, when I rediscovered the Conway's game of life.
+
+What is Conway's game of life though? Read about it here on [Wikipedia](https://https://en.wikipedia.org/wiki/Conway%27s_Game_of_Life)
+
+Basically,
+
+> The Game of Life, also known simply as Life, is a cellular automaton devised by the British mathematician John Horton Conway in 1970.[1] It is a zero-player game, meaning that its evolution is determined by its initial state, requiring no further input. One interacts with the Game of Life by creating an initial configuration and observing how it evolves. It is Turing complete and can simulate a universal constructor or any other Turing machine.
+
+This is sooo cool!!! I was thinking about it when it struck - Let's try to make a python implementation myself! (I later realised that this so very very common - More than 40k repositories on github)
+
+You can visit the repository here, Leave a ✨ if you liked it!
+
+[![Readme Card](https://github-readme-stats.vercel.app/api/pin/?username=dhravya&repo=game-of-life&theme=dark)](https://github.com/dhravya/game-of-life)
+
+## Getting started
+
+First, I had to install a python package called PyLab (it's kinda like a subset of matplotlib, which is all I wanted)
+
+That's what will be used to plot these beautiful looking graphs, very easily
+
+The Rules for the Game of Life are:
+
+1. Any live cell with fewer than two live neighbours dies, as if caused by under-population/starvation.
+2. Any live cell with two or three live neighbours lives on to the next generation.
+3. Any live cell with more than three live neighbours dies, as if by overcrowding.
+
+4. New cells are born if a dead cell has exactly three live neighbours.
+
+Let's say, living cells are `1` and dead cells are `0`
+
+Let's make a class GameOfLife
+
+```py
+class GameOfLife:
+    def __init__(
+            self, N: Union[int, None] = 100, T: int = 200
+    ):
+        """Set up Conway's Game of Life.
+        :param N: The size of the grid.
+        :param T: The number of generations to evolve."""
+
+        # Here we create two grids to hold the old and new configurations.
+        # This assumes an N*N grid of points.
+
+        # Each point is either alive or dead, represented by integer values of 1 and 0, respectively.
+        self.N = N
+        # highlight
+        self.old_grid = numpy.zeros(N * N, dtype="i").reshape(N, N)
+        self.new_grid = numpy.zeros(N * N, dtype="i").reshape(N, N)
+        # /highlight
+```
+
+I created two grids, one for the old configuration, and one for the new configuration (that will get generated) It's just N \* N shaped arrays with zeros
+
+I need to generate a random pattern to be able to get started, so I used this method using the `random` module (It probably isn't the best way, but works)
+
+```py
+for i in range(0, self.N):
+    for j in range(0, self.N):
+        if random.randint(0, 100) < 15:
+            self.old_grid[i][j] = 1
+        else:
+            self.old_grid[i][j] = 0
+```
+
+So 15% of the points are alive, and the rest are dead.
+
+The key element of the game is to find out the number of live neighbours for each point, so I just made a function to make it easier for myself
+
+```py
+def live_neighbours(self, i, j):
+    """Count the number of live neighbours around point (i, j)."""
+    s = 0  # The total number of live neighbours.
+    # Loop over all the neighbours.
+    for x in [i - 1, i, i + 1]:
+        for y in [j - 1, j, j + 1]:
+            if x == i and y == j:
+                continue  # Skip the current point itself - we only want to count the neighbours!
+            if x != self.N and y != self.N:
+                s += self.old_grid[x][y]
+            # The remaining branches handle the case where the neighbour is off the end of the grid.
+            # In this case, we loop back round such that the grid becomes a "toroidal array".
+            elif x == self.N and y != self.N:
+                s += self.old_grid[0][y]
+            elif x != self.N and y == self.N:
+                s += self.old_grid[x][0]
+            else:
+                s += self.old_grid[0][0]
+    return s
+```
+
+Now all that's left, is to make the game evolve. For this, I created a pylab colormesh and added a colorbar to it And saved the original (randomly generated) image
+
+We don't want the image in the final render as it would be too small / big
+
+```py
+pylab.pcolormesh(self.old_grid)
+pylab.colorbar()
+pylab.savefig("generation0.png")
+```
+
+It would be very inefficient to save the image every generation, so there's a `write_frequency` to save every 5th image only
+
+Now, all that's left is to loop over each cell and apply Conway's rules
+
+- Get number of live neighbours
+- If the cell is alive, and has 2 or 3 live neighbours, it stays alive
+- If more or less, it dies
+- if the cell is dead and there are exactly 3 live neighbours, it becomes alive
+
+All changes are done to the new grid
+
+```py
+for i in range(self.N):
+    for j in range(self.N):
+        live = self.live_neighbours(i, j)
+        # highlight-start
+        if self.old_grid[i][j] == 1 and live < 2:
+            self.new_grid[i][j] = 0  # Dead from starvation.
+        elif self.old_grid[i][j] == 1 and (live == 2 or live == 3):
+            self.new_grid[i][j] = 1  # Continue living.
+        elif self.old_grid[i][j] == 1 and live > 3:
+            self.new_grid[i][j] = 0  # Dead from overcrowding.
+
+        elif self.old_grid[i][j] == 0 and live == 3:
+            self.new_grid[i][j] = 1  # Alive from reproduction.
+        # highlight-end
+```
+
+Now that we have our new grid, we need to save it as a nice image
+
+```py
+# Output the new configuration.
+if t % write_frequency == 0:
+pylab.pcolormesh(grid)
+pylab.savefig(f"generations/generation{t}.png", dpi=300)
+```
+
+And that's it!! The program will run and evolve for T generations and save images every 5 generations
+
+```py
+if __name__ == "__main__":
+    game = GameOfLife(N=20, T=200)
+    game.play()
+```
+
+Now, let's try to make a GIF animation of the evolution
+
+For this, I use `glob` and `imageio`, and it's a fairly straightforward process
+
+```py
+import glob
+import imageio
+```
+
+I defined a staticmethod `animate_folder` to convert all the images in the folder into a nice single GIF
+
+```py
+@staticmethod
+def animate_folder():
+    """Makes an animated gif from a folder of images."""
+    images = []
+    for image in glob.glob("generations/*.png"):
+        images.append(imageio.imread(image))
+    # Using mimsave to convert into GIF
+    imageio.mimsave("animation.gif", images, "GIF", duration=0.5)
+```
+
+This is a bit of a hack I found on stackoverflow
+
+The beauty of Conway's game of life is that it's so sophesticated, and it's so simple to implement, yet so powerful. I dug up some numpy arrays and added a `Patterns` class that has really really cool patterns like
+
+glider, glider shooter, mothership, beacon, block, an unbounded one which keeps growing forever
+
+```py
+class Patterns:
+    """A class to store all the patterns"""
+
+    def __init__(self):
+        self.patterns = {}
+        self.glider = numpy.array([[0, 0, 1], [1, 0, 1], [0,  1, 1], [0, 0, 1]])
+        ...
+```
+
+and Finally added a patterns parameter to the GameOfLife class so I can use them easily
+
+I've also added terminal styling to make it look really good. You can try it out yourself very easily by cloning the repository and running `python3 game_of_life.py`
+
+```bash
+git clone https://github.com/dhravya/game-of-life.git
+```
+
+Ofcourse, any contributions are welcome too!!
+
+Thanks for reading my blog. I hope you enjoyed it, and learned something new! Leave a comment down below if you have any suggestions, ideas or comments.

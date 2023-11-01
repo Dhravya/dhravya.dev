@@ -1,0 +1,96 @@
+---
+title: 'Docker- Explained to a 5 year old. 👶🏻 '
+summary: 'When I was starting out with docker, everything was really difficult for me to figure out. But dont worry. Im here 😉'
+publishedAt: '2022-03-14'
+---
+
+When I was starting out with docker, everything was really difficult for me to figure out. But don't worry. I'm here 😉
+
+Docker is an AMAZING tool that you just can't miss. It's EVERYWHERE! ![Docker everywhere](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/wi6tkhrald0cdt3kwd4f.png)
+
+So here's everything you need to know about docker, in ONE blog. Don't worry - I'll keep it very short and concise ⚡ I'll walk you through the concepts - Containers, Images, etc. And then we'll write our own `Dockerfile` to containerize a very simple python application!
+
+## Table of Contents
+
+- [What is Docker?](#what-is-docker)
+- [Docker Images](#images)
+- [Build image and run container](#container)
+- [More commands and conclusion](#commands)
+
+### What is docker? <a name="what-is-docker"></a>
+
+Docker is a way to _containerize_ applications (putting code in boxes that can work on their own). It magically makes a virtual computer, but guess what - they aren't really virtual computers.
+
+Containers are boxes that have no host Operating system, so they are independent of the device they run on.
+
+Think of it like this - there's a bee that only likes to live in it's own honeycomb, and will not be able to work if it lives somewhere else. You just trap the bee in a box that looks and feels exactly like it's honeycomb. That's containerization.
+
+Containers are made using `Images`
+
+![works on my machine](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/aa5scon7qufrtoon59ig.png)
+
+### Docker Images <a name="images"></a>
+
+Docker Images are like templates - a craftbook that _has everything to make the craft_. Or, in other words, it contains a set of instructions for creating a container.
+
+But how do you make these images (to later make containers) ?
+
+This is done using Dockerfiles.
+
+### All about Dockerfiles <a name="dockerfiles"></a>
+
+A Dockerfile is a text document that contains all the commands a user could call on the command line to assemble an image. Ok, let's make a Dockerfile together.
+
+Now, we'll start with docker HANDS ON!
+
+Quickly download docker on your device : https://www.docker.com/get-started
+
+Now that you have it, let's write a simple flask application and containerize it!
+
+Here's a very simple and minimal flask app ![Image description](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/2uk8n8f7n3ymvpvm0n42.png)
+
+Now, even though this might be very basic, it actually needs a lot of things to run:
+
+- Python 3.9
+- Flask (running `pip install flask`)
+- exposure to port 5000
+
+Some programs might only run on specific Operating systems - like Windows-only or Linux-only stuff.
+
+All these problems are solved by writing a simple dockerfile, that sets up a docker image for us. So you need to make a file called `Dockerfile` (exactly, without any file extension)
+
+Here is a walkthrough:
+
+- use FROM to use python base image
+- use COPY to copy the app.py file into the container
+- use RUN to pip install flask
+- use CMD to run "python app.py" when container starts
+
+Its as easy as that!!! ![Dockerfile](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/9my36kkqeygulzip6ukb.png)
+
+> minor correction : the file should be named Dockerfile instead
+
+### Building the image and running container <a name="container"></a>
+
+Now, build to docker image using the `docker build` command and then run the image by using the `docker run .` command.
+
+You can also use the `--tag` to give a name to the image and make it easier for yourself to run later
+
+```
+docker build --tag flask .
+docker run --name flask -p 5000:5000 flask
+```
+
+Here, `--name` is the name of the container to be run (which i'm naming flask), -p sets the port of the docker CONTAINER to your machine, so you can see your app on `localhost`. Finally, the `flask` at the name is the name of the image to be run.
+
+### More commands <a name="commands"></a>
+
+That's pretty much it!!! use the "docker ps" command to get a list of running containers, "docker ps -a" to get list of ALL containers "docker images" to get list of images
+
+"docker --help" to get list of all commands
+
+Mess around with the commands, they are self-explanatory
+
+[Read the official documentation](https://docs.docker.com) here.
+
+If you learnt something in this blog, make sure to 💖 it, and follow me if you REALLY liked it!

@@ -1,0 +1,191 @@
+---
+title: Create the fastest search for your website in minutes, without any dependencies
+summary: In the world of algolia, Typesense and what not, I chose the simplest and fastest way. How I made the search feature for this blog
+publishedAt: 2022-05-09
+---
+
+<a
+  data-tip='To skip the story and go directly to the solution'
+  href='#solution'
+>
+  Jump to main content
+</a>
+
+> The project I'm working on is written in Gatsby JS, but the solution itself is vanilla react and will work everywhere.
+
+Today, I spent most of my time updating this blog, and thought to add more features like _search_, _tags_, MDX support, and a few design changes, including the sidebar.
+
+I was deciding how I would implement the search function, because the only time I have done it, was using a Self hosted version of <a data-tip="Typesense is a modern, privacy-friendly, open source search engine built from the ground up using cutting-edge search algorithms, that take advantage of the latest advances in hardware capabilities." href="https://typesense.org/docs/guide/install-typesense.html" class="">Typesense</a>
+
+But well, that was costly to host server-side, especially for something as simple as a blog. and their hosted solutions aren't that great price-wise either.
+
+So one thing was sure, there is no need to use any API for this. After a quick google search, I came across this documentation on Gatsby's website which is about <a href="https://www.gatsbyjs.com/docs/how-to/adding-common-features/adding-search/">Adding Search to Gatsby</a>
+
+From that guide, under the `Client Side` section, here's what they recommend:
+
+<div>
+  <code>
+It is possible to do all the work in your Gatsby site without needing a third-party solution. This involves writing a bit of code, but using less services. With large amounts of content to index, it can also increase the bundle size significantly.
+
+One way of doing this is to use the js-search library:
+
+[Adding Search with JS Search](https://www.gatsbyjs.com/docs/adding-search-with-js-search)
+
+There are two Gatsby plugins that support this as well:
+
+`gatsby-plugin-elasticlunr-search` `gatsby-plugin-local-search`
+
+  </code>
+</div>
+
+Now these search methods index everything which means higher bundle size. And they are also a hassle to set up.
+
+## The solution I went with <a id='solution'></a>
+
+Now for my use case, it was probably a good idea to just make something simple by myself, and I can build on it as I keep updating this blog.
+
+The idea is really simple, I just need to make a search box, and on every keystroke, loop through the contents and filter them like that.
+
+```jsx
+const BlogIndex = ({ data, location }) => {
+  // These posts can be anything,
+  // I've just used the posts from a gatsby query
+	const posts = data.allMdx.edges;
+
+  // We need to filter the posts by the search query.
+  // by default, we have all posts
+	const [filteredPosts, setFilteredPosts] = useState(posts);
+
+  // This will be the search query
+  const [search, setSearch] = useState('');
+
+  return (
+    <div>
+      {/* Our search bar */}
+      <input
+        type="text"
+        placeholder="Search"
+        onChange={(e) => {
+          e.preventDefault();
+          setSearch(e.target.value)}
+      }/>
+
+      {/* Simply mapping through everything and rendering blogs */}
+      {filteredPosts.map(({ node }) => {
+        <BlogPost post={node} key={node.id} />
+      }}
+    </div>
+  )
+}
+```
+
+Now, whenever something is typed in the box, the `search` state will be updated. Now, let's write a `useEffect` hook to update the `filteredPosts` state whenever the `search` state changes.
+
+```jsx
+const BlogIndex = ({ data, location }) => {
+
+	const posts = data.allMdx.edges;
+	const [filteredPosts, setFilteredPosts] = useState(posts);
+  const [search, setSearch] = useState('');
+
+  //highlight-start
+  useEffect(() => {
+    if (search) {
+      // post filtering here
+    }
+  }
+  // only update the filteredPosts state when the search state changes or the posts state changes
+  , [search, posts]);
+  ///highlight-end
+
+  return (
+    ... // rest of the code
+  )
+```
+
+And now let's write some very simple code to filter the posts.
+
+```jsx
+...
+
+  if (search) {
+    const filteredPosts = posts.filter(post => {
+        //highlight-start
+        const title = post.title.toLowerCase();
+        const description = post.description.toLowerCase();
+        return title.match(search.toLowerCase()) || description.match(search.toLowerCase());
+        //highlight-end
+    }
+  }
+  setFilteredPosts(filteredPosts);
+...
+```
+
+Since my blog has tags and stuff like that, I added functionality to search and filter by tags, too
+
+```jsx
+    if (search.startsWith("#")) {
+      return tags.includes(search.replace("#", ""));
+    }
+...
+```
+
+And that's it! But wait, there's more. This works, but you can't really _share_ a search query to someone else, I can share google links - [google.com/search?q=github](https://google.com/search?q=github) I think that's kinda important, like, for times when I have to share [all my Rust blogs](/?q=#rust), it's just easier and convenient.
+
+so well, let's update the URL to include the search query, in real time! I hadn't ever done this before, so it was great learning it. I got the inspiration from the <a data-tip="<img width=600 src='https://us-east-1.tixte.net/uploads/img.dhravya.dev/l2z2r69z30a.gif'></img>" href="https://ifttt.com">IFTTT search engine</a> (Hover over the link to see the gif, notice how the URL changes in real time)
+
+I found out about the `window.history.pushState()` method, which basically allows you to push a new URL without adding it to the browser history, or reloading the page. Read the documentation for the same over here -
+
+<a
+  data-tip="<img width=700 src='https://us-east-1.tixte.net/uploads/img.dhravya.dev/l2z32l9dj0a.png'></img>"
+  href='https://developer.mozilla.org/en-US/docs/Web/API/History_API'
+>
+  History API | MDN
+</a>
+
+```jsx
+useEffect(() => {
+		if (search) {
+      //highlight-start
+			if (window.history.pushState) {
+        window.history.pushState(null, null, `/?q=${search}`);
+      }
+      //highlight-end
+      const filteredPosts = posts.filter(post => {
+        const title = post.title.toLowerCase();
+        const description = post.description.toLowerCase();
+        return title.match(search.toLowerCase()) || description.match(search.toLowerCase());
+    }
+  }
+  setFilteredPosts(filteredPosts);
+  }, [search]);
+```
+
+And now, we also need to parse the _original_ request, using the `window location ` object, and make it default for the `useState` hook we made for `search`
+
+```jsx
+                      // 👇🏻 converts the URL from HTML encoded to a string (%20 to space)
+	const initialState = decodeURI(location.href? // Use window location
+                      .split('/')               // Split the URL into an array
+                      .pop()                    // Get the last element only
+                      .split("=")               // at this point, it's q=search, so we only need the "Search" parth
+                      .pop() );
+
+                                        // 👇🏻 We're using the initialState to set the search query.
+  const [search, setSearch] = useState(initialState); // Now, only the blogs that match the query will be displayed on first load
+```
+
+## That's it!
+
+The full implementation can be found in the [source code of this blog on Github](https://github.com/Dhravya/blog/blob/f2a9bfa35600bd182b8f51ba2e347d8bedd938c3/src/pages/index.jsx)
+
+You can [try out the search yourself](/?q=search)
+
+<a href='https://twitter.com/dhravyashah'>
+  <img
+    src='https://img.shields.io/twitter/follow/dhravyashah?logo=twitter&style=for-the-badge'
+    alt='Dhravya Shah'
+  />
+</a>
+
+Feel free to visit the repository for this blog here [![Dhravya Shah's blog](https://github-readme-stats.vercel.app/api/pin/?username=dhravya&repo=blog)](https://github.com/dhravya/blog)

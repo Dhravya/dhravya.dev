@@ -1,0 +1,35 @@
+---
+title: This website doesn't have an API, so I remade the entire website, and made a Twitter bot.
+summary: The poet this twitter bot i had earlier, had several issues, like being too expensive to host, and not being able to use reliably. It was time to change this.
+publishedAt: '2022-05-06'
+---
+
+The [poet_this twitter bot](https://dev.to/dhravya/i-made-a-twitter-bot-to-take-beautiful-screenshots-of-a-tweet-3kk5) I made, used to use selenium to extract tweets from https://poet.so (literally going to the website, pasting link, taking a screenshot 💀)
+
+This had several, several issues:
+
+- Very costly to host
+- Inefficient by design
+- Slow
+- Highly prone to errors and crashes
+
+It was time to change this.
+
+So I went ahead and created :
+
+- a python script that uses the Python Image Library to generate the image. This was quite challenging, because I had to (very painfully) plot stuff pixel-by-pixel, and also had to ensure that the tweet fits in the box (for which, I made my own trick where I vertically expanded the image, I'll write a bigger blog explaining the code)
+- An API that anyone and everyone can use
+- A frontend for the API
+- An overall framework, that works for twitter stuff for now, but I'll also be able to implement the same for reddit posts (and comments), etc. you get the point
+
+It was a lot of hassle to make things like mentions, hashtags, and link appear in blue color, media support, and the replies, but I did it!
+
+You can visit the website here - https://beautify.dhravya.dev
+
+To use it instantly on any tweet, mention [@poet_this](https://twitter.com/poet_this) So yeah, it's time to change the name from poet_this to beautify_this lol
+
+"But isn't this the same as poet.so?" Well, it is for the most part, but I've also added (a very few, but important) extra features like replies showing up with a preview of the original tweet, with the website doesn't have. ![Replies show up like this.](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/z522w4pajdep9d9bt2q0.png)
+
+I also think that my updated design is better
+
+also, THANK YOU SO MUCH for showing so much love on the [last post](https://dev.to/dhravya/i-made-a-twitter-bot-to-take-beautiful-screenshots-of-a-tweet-3kk5). Because of your support, I got a 50$ forem shop voucher. Even though I'll be unable to afford the shipping costs, it means a lot to me to just receive the voucher.

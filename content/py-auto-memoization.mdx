@@ -1,0 +1,41 @@
+---
+title: "Write FAST Python using Automatic Memoization ⚡ "
+summary: "How to make your python scripts 1000 times faster with one line of code"
+publishedAt: "2022-03-17"
+---
+
+I came across this decorator in Functools which enables automatic Memoization of a function (Basically, storing what a certain function call returns and not having to run it again)
+
+I'm about to blow your minds. and make the code more than 1000 times faster with just ONE line of code!
+
+So here's a snippet that takes about 52 seconds to run. It's very slow and bad code because it's having to run the same `fib()` function multiple times. So every function call takes twice the amount of time the last function call. oh what a mess ![bad slow code](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/v9qzxqeotkm163fb6a7j.png)
+
+### Here's the magic ✨
+
+By using the functool library's `cache` decorator, you can memoise the code automatically for much faster results! Literally just one line of code (and the import, obviously)
+
+```py
+from functools import cache
+
+@cache
+def fib(n):
+    ...
+```
+
+Just adding this makes the code run in JUST ` 0.013621500000000009` seconds! What's the cache here?(ha, get it? Catch ? cache?) Basically all that the decorator is doing, is "remembering" the function call in memory, so this takes more RAM. But there's a way to make this even better.
+
+It's by using the `recently-used-cache` decorator (lru_cache)
+
+```py
+from functools import lru_cache
+
+@lru_cache(maxsize=5)
+```
+
+This only stores the last 5 function calls, which is much better. So here's the complete code:
+
+![LRU cache](https://dev-to-uploads.s3.amazonaws.com/uploads/articles/ubbi9drptih6bfureo5c.png)
+
+How mind blowing is that!!
+
+If you liked this little python trick, make sure to 💖 this post. If you REALLY liked it, Follow me here - https://dev.to/dhravya and if you REALLY REALLY liked it, follow me on twitter! https://twitter.com/dhravyashah
